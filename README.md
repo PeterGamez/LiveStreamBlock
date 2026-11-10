@@ -120,6 +120,10 @@ plugins:
   livestreamblock:
     enabled: true                 # Master toggle: enable or disable the entire plugin (default: true)
 
+    rest-api:
+      enabled: true               # Enable REST API endpoints (/v4/livestreamblock/...)
+      password: ""                # Optional dedicated password (uses Lavalink server password if empty)
+
     block-live-streams: true      # Block video live streams (YouTube Live, Twitch, Kick, etc.)
     block-radio: true             # Block online radio (Icecast, Shoutcast, HLS .m3u8, .pls, HTTP radio)
     block-other-streams: true     # Block any other unidentified stream where isStream = true
@@ -150,10 +154,6 @@ plugins:
     blocked-keywords:
       # - "24/7 radio"
       # - "live stream"
-
-    rest-api:
-      enabled: true               # Enable REST API endpoints (/v4/livestreamblock/...)
-      password: ""                # Optional dedicated password (uses Lavalink server password if empty)
 ```
 
 ---
