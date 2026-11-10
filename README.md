@@ -113,7 +113,7 @@ Add the following configuration block to your Lavalink `application.yml`:
 ```yaml
 lavalink:
   plugins:
-    - dependency: "com.github.PeterGamez:LiveStreamBlock:1.0.0"
+    - dependency: "com.github.PeterGamez:LiveStreamBlock:0.0.1"
       repository: "https://jitpack.io" # Or place the .jar file directly into plugins/ directory
 
 plugins:
