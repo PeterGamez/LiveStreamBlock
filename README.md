@@ -118,7 +118,7 @@ lavalink:
 
 plugins:
   livestreamblock:
-    enabled: true                 # Master toggle: enable or disable the entire plugin (default: true)
+    enabled: true                 # Enable or disable plugin (default: true)
 
     rest-api:
       enabled: true               # Enable REST API endpoints (/v4/livestreamblock/...)
@@ -162,7 +162,9 @@ plugins:
 
 | Setting | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `enabled` | Boolean | `true` | Master switch enabling or disabling the entire LiveStreamBlock plugin. |
+| `enabled` | Boolean | `true` | Enables or disables the entire LiveStreamBlock plugin. |
+| `rest-api.enabled` | Boolean | `true` | Enables `/v4/livestreamblock/...` REST endpoints. |
+| `rest-api.password` | String | `""` | Optional password for REST API (`X-LiveStreamBlock-Password`). Defaults to server password. |
 | `block-live-streams` | Boolean | `true` | Enables or disables blocking video live streams (YouTube Live, Twitch, Kick, Vimeo). |
 | `block-radio` | Boolean | `true` | Enables or disables blocking online radio stations (Icecast, Shoutcast, .m3u8, .pls). |
 | `block-other-streams` | Boolean | `true` | Blocks any other indefinite stream where `isStream == true`. |
@@ -178,8 +180,6 @@ plugins:
 | `allowed-urls` | List<String> | `[]` | Whitelist regex or URL substrings exempt from blocking. |
 | `blocked-urls` | List<String> | `[]` | Blacklist regex or URL substrings always blocked. |
 | `blocked-keywords` | List<String> | `[]` | Keywords in track title or author that trigger blocking. |
-| `rest-api.enabled` | Boolean | `true` | Enables `/v4/livestreamblock/...` REST endpoints. |
-| `rest-api.password` | String | `""` | Optional password for REST API (`X-LiveStreamBlock-Password`). Defaults to server password. |
 
 #### 💡 Deep Dive: How the Blocking Flags Differ
 
