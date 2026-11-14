@@ -1,11 +1,11 @@
 package com.github.petergamez.livestreamblock;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Configuration POJO for LiveStreamBlock.
@@ -23,9 +23,9 @@ public class LiveStreamBlockConfig {
     private volatile String action = "EXCEPTION"; // "EXCEPTION" or "EMPTY"
     private volatile String blockMessage = "Live streams and radio stations are blocked on this server.";
 
-    private final List<String> allowedUrls = Collections.synchronizedList(new ArrayList<>());
-    private final List<String> blockedUrls = Collections.synchronizedList(new ArrayList<>());
-    private final List<String> blockedKeywords = Collections.synchronizedList(new ArrayList<>());
+    private final List<String> allowedUrls = new CopyOnWriteArrayList<>();
+    private final List<String> blockedUrls = new CopyOnWriteArrayList<>();
+    private final List<String> blockedKeywords = new CopyOnWriteArrayList<>();
 
     private SourcesConfig sources = new SourcesConfig();
     private RestApiConfig restApi = new RestApiConfig();
