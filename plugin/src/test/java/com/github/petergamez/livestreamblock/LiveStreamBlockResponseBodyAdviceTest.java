@@ -129,5 +129,15 @@ public class LiveStreamBlockResponseBodyAdviceTest {
         assertEquals(1, output.getData().getTracks().size());
         assertEquals("Song A", output.getData().getTracks().get(0).getInfo().getTitle());
     }
+
+    @Test
+    @DisplayName("createLoadFailed should safely return LoadResult.LoadFailed across versions")
+    void testCreateLoadFailedCompatibility() {
+        LoadResult result = advice.createLoadFailed("Blocked message", dev.arbjerg.lavalink.protocol.v4.Exception.Severity.COMMON, "Cause info");
+        assertInstanceOf(LoadResult.LoadFailed.class, result);
+        LoadResult.LoadFailed failed = (LoadResult.LoadFailed) result;
+        assertEquals("Blocked message", failed.getData().getMessage());
+        assertEquals(dev.arbjerg.lavalink.protocol.v4.Exception.Severity.COMMON, failed.getData().getSeverity());
+    }
 }
 

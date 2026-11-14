@@ -84,11 +84,11 @@ public class LiveStreamBlockResponseBodyAdvice implements ResponseBodyAdvice<Obj
                 if (config.isActionEmpty()) {
                     return LoadResult.NoMatches.Companion.invoke();
                 } else {
-                    return new LoadResult.LoadFailed(new Exception(
+                    return createLoadFailed(
                             result.getMessage(),
                             Exception.Severity.COMMON,
                             result.getReason().name() + ": " + result.getDetails()
-                    ));
+                    );
                 }
             }
             return loadResult;
@@ -134,11 +134,11 @@ public class LiveStreamBlockResponseBodyAdvice implements ResponseBodyAdvice<Obj
                     if (config.isActionEmpty()) {
                         return LoadResult.NoMatches.Companion.invoke();
                     } else {
-                        return new LoadResult.LoadFailed(new Exception(
+                        return createLoadFailed(
                                 config.getBlockMessage(),
                                 Exception.Severity.COMMON,
                                 "All tracks in playlist were blocked live streams or radio stations"
-                        ));
+                        );
                     }
                 }
 
@@ -198,6 +198,52 @@ public class LiveStreamBlockResponseBodyAdvice implements ResponseBodyAdvice<Obj
         }
 
         return loadResult;
+    }
+
+    /**
+     * Creates a {@link LoadResult.LoadFailed} instance safely across different Lavalink v4 versions.
+     * Lavalink 4.0.0 - 4.1.x uses Exception(String, Severity, String) [3 args]
+     * Lavalink 4.2.0+ uses Exception(String, Severity, String, String) [4 args with causeStackTrace]
+     */
+    LoadResult createLoadFailed(String message, Exception.Severity severity, String cause) {
+        try {
+            Exception ex = createException(message, severity, cause);
+            return new LoadResult.LoadFailed(ex);
+        } catch (java.lang.Exception e) {
+            log.error("Failed to construct LoadResult.LoadFailed: {}", e.getMessage(), e);
+            return LoadResult.NoMatches.Companion.invoke();
+        }
+    }
+
+    /**
+     * Instantiates {@link Exception} using reflection to maintain cross-version compatibility.
+     */
+    Exception createException(String message, Exception.Severity severity, String cause) {
+        String safeCause = cause != null ? cause : "";
+
+        // 1. Try 4-parameter constructor (Lavalink 4.2.0+)
+        // Exception(String message, Severity severity, String cause, String causeStackTrace)
+        try {
+            var constructor4 = Exception.class.getConstructor(
+                    String.class, Exception.Severity.class, String.class, String.class
+            );
+            return constructor4.newInstance(message, severity, safeCause, safeCause);
+        } catch (NoSuchMethodException ignored) {
+            // Not running on Lavalink 4.2+, fallback to 3-parameter constructor
+        } catch (java.lang.Exception e) {
+            log.warn("Failed to invoke 4-parameter Exception constructor: {}", e.getMessage());
+        }
+
+        // 2. Try 3-parameter constructor (Lavalink 4.0.0 - 4.1.x)
+        // Exception(String message, Severity severity, String cause)
+        try {
+            var constructor3 = Exception.class.getConstructor(
+                    String.class, Exception.Severity.class, String.class
+            );
+            return constructor3.newInstance(message, severity, safeCause);
+        } catch (java.lang.Exception e) {
+            throw new RuntimeException("Could not create dev.arbjerg.lavalink.protocol.v4.Exception instance", e);
+        }
     }
 }
 
