@@ -3,6 +3,7 @@ package com.github.petergamez.livestreamblock;
 import dev.arbjerg.lavalink.protocol.v4.Exception;
 import dev.arbjerg.lavalink.protocol.v4.LoadResult;
 import dev.arbjerg.lavalink.protocol.v4.Playlist;
+import dev.arbjerg.lavalink.protocol.v4.PlaylistInfo;
 import dev.arbjerg.lavalink.protocol.v4.Track;
 import dev.arbjerg.lavalink.protocol.v4.TrackInfo;
 import org.slf4j.Logger;
@@ -15,6 +16,7 @@ import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,6 +27,31 @@ import java.util.List;
 public class LiveStreamBlockResponseBodyAdvice implements ResponseBodyAdvice<Object> {
 
     private static final Logger log = LoggerFactory.getLogger(LiveStreamBlockResponseBodyAdvice.class);
+
+    private static final Constructor<?> EXCEPTION_CONSTRUCTOR;
+    private static final boolean IS_FOUR_ARG_CONSTRUCTOR;
+
+    static {
+        Constructor<?> ctor = null;
+        boolean fourArg = false;
+        try {
+            ctor = Exception.class.getConstructor(
+                    String.class, Exception.Severity.class, String.class, String.class
+            );
+            fourArg = true;
+        } catch (NoSuchMethodException e) {
+            try {
+                ctor = Exception.class.getConstructor(
+                        String.class, Exception.Severity.class, String.class
+                );
+                fourArg = false;
+            } catch (NoSuchMethodException ex) {
+                log.error("Could not find suitable dev.arbjerg.lavalink.protocol.v4.Exception constructor for Lavalink 4.x.x", ex);
+            }
+        }
+        EXCEPTION_CONSTRUCTOR = ctor;
+        IS_FOUR_ARG_CONSTRUCTOR = fourArg;
+    }
 
     private final LiveStreamBlockPluginConfig config;
     private final LiveStreamDetector detector;
@@ -142,8 +169,17 @@ public class LiveStreamBlockResponseBodyAdvice implements ResponseBodyAdvice<Obj
                     }
                 }
 
+                int oldSelected = playlist.getInfo().getSelectedTrack();
+                int newSelected = -1;
+                if (oldSelected >= 0 && oldSelected < originalTracks.size()) {
+                    Track originalSelectedTrack = originalTracks.get(oldSelected);
+                    newSelected = allowedTracks.indexOf(originalSelectedTrack);
+                }
+
+                PlaylistInfo updatedInfo = new PlaylistInfo(playlist.getInfo().getName(), newSelected);
+
                 return new LoadResult.PlaylistLoaded(new Playlist(
-                        playlist.getInfo(),
+                        updatedInfo,
                         playlist.getPluginInfo(),
                         allowedTracks
                 ));
@@ -201,48 +237,26 @@ public class LiveStreamBlockResponseBodyAdvice implements ResponseBodyAdvice<Obj
     }
 
     /**
-     * Creates a {@link LoadResult.LoadFailed} instance safely across different Lavalink v4 versions.
+     * Creates a {@link LoadResult.LoadFailed} instance safely across different Lavalink v4 versions
+     * using the statically resolved Exception constructor.
      * Lavalink 4.0.0 - 4.1.x uses Exception(String, Severity, String) [3 args]
      * Lavalink 4.2.0+ uses Exception(String, Severity, String, String) [4 args with causeStackTrace]
      */
     LoadResult createLoadFailed(String message, Exception.Severity severity, String cause) {
+        if (EXCEPTION_CONSTRUCTOR == null) {
+            log.error("No suitable dev.arbjerg.lavalink.protocol.v4.Exception constructor available for Lavalink 4.x.x");
+            return LoadResult.NoMatches.Companion.invoke();
+        }
+
         try {
-            Exception ex = createException(message, severity, cause);
+            String safeCause = cause != null ? cause : "";
+            Exception ex = IS_FOUR_ARG_CONSTRUCTOR
+                    ? (Exception) EXCEPTION_CONSTRUCTOR.newInstance(message, severity, safeCause, safeCause)
+                    : (Exception) EXCEPTION_CONSTRUCTOR.newInstance(message, severity, safeCause);
             return new LoadResult.LoadFailed(ex);
         } catch (java.lang.Exception e) {
             log.error("Failed to construct LoadResult.LoadFailed: {}", e.getMessage(), e);
             return LoadResult.NoMatches.Companion.invoke();
-        }
-    }
-
-    /**
-     * Instantiates {@link Exception} using reflection to maintain cross-version compatibility.
-     */
-    Exception createException(String message, Exception.Severity severity, String cause) {
-        String safeCause = cause != null ? cause : "";
-
-        // 1. Try 4-parameter constructor (Lavalink 4.2.0+)
-        // Exception(String message, Severity severity, String cause, String causeStackTrace)
-        try {
-            var constructor4 = Exception.class.getConstructor(
-                    String.class, Exception.Severity.class, String.class, String.class
-            );
-            return constructor4.newInstance(message, severity, safeCause, safeCause);
-        } catch (NoSuchMethodException ignored) {
-            // Not running on Lavalink 4.2+, fallback to 3-parameter constructor
-        } catch (java.lang.Exception e) {
-            log.warn("Failed to invoke 4-parameter Exception constructor: {}", e.getMessage());
-        }
-
-        // 2. Try 3-parameter constructor (Lavalink 4.0.0 - 4.1.x)
-        // Exception(String message, Severity severity, String cause)
-        try {
-            var constructor3 = Exception.class.getConstructor(
-                    String.class, Exception.Severity.class, String.class
-            );
-            return constructor3.newInstance(message, severity, safeCause);
-        } catch (java.lang.Exception e) {
-            throw new RuntimeException("Could not create dev.arbjerg.lavalink.protocol.v4.Exception instance", e);
         }
     }
 }

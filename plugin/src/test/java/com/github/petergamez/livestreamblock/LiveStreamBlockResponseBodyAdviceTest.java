@@ -114,6 +114,27 @@ public class LiveStreamBlockResponseBodyAdviceTest {
     }
 
     @Test
+    @DisplayName("Playlists should adjust selectedTrack index when preceding tracks are filtered")
+    void testPlaylistSelectedTrackAdjustment() {
+        Track liveTrack = createTrack("Live Stream", "Streamer", "https://youtube.com/watch?v=live", "youtube", true, Long.MAX_VALUE);
+        Track normalTrack = createTrack("Song 1", "Artist 1", "https://youtube.com/watch?v=song1", "youtube", false, 200000L);
+
+        Playlist playlist = new Playlist(
+                new PlaylistInfo("My Playlist", 1),
+                EMPTY_JSON,
+                List.of(liveTrack, normalTrack)
+        );
+        LoadResult.PlaylistLoaded input = new LoadResult.PlaylistLoaded(playlist);
+
+        Object result = advice.beforeBodyWrite(input, null, null, null, null, null);
+        assertInstanceOf(LoadResult.PlaylistLoaded.class, result);
+
+        LoadResult.PlaylistLoaded output = (LoadResult.PlaylistLoaded) result;
+        assertEquals(1, output.getData().getTracks().size());
+        assertEquals(0, output.getData().getInfo().getSelectedTrack());
+    }
+
+    @Test
     @DisplayName("Search results should filter out livestream tracks")
     void testSearchResultFiltering() {
         Track normalTrack = createTrack("Song A", "Artist A", "https://youtube.com/watch?v=songA", "youtube", false, 180000L);
