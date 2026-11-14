@@ -8,7 +8,7 @@ val (gitVersion, release) = versionFromGit()
 logger.lifecycle("Version: $gitVersion (release: $release)")
 
 allprojects {
-    group = "com.github.petergamez.trackcache"
+    group = "com.github.petergamez.livestreamblock"
     version = gitVersion.removeSuffix("-SNAPSHOT")
 
     repositories {

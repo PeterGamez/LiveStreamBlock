@@ -1,0 +1,138 @@
+name: Bug Report
+description: Report an unexpected behavior or bug in LiveStreamBlock
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting an issue! Please provide as much information as possible to help reproduce and fix the bug quickly.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of the bug.
+      placeholder: Explain what happened...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Detailed steps to reproduce the issue.
+      value: |
+        1. Configure LiveStreamBlock in `application.yml` with ...
+        2. Query track / stream / playlist via `/v4/loadtracks` with query `...`
+        3. See error / unexpected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen instead?
+      placeholder: Expected the stream to be blocked with EXCEPTION/EMPTY or allowed...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: java-version
+    attributes:
+      label: Java Version
+      description: Which Java runtime are you using?
+      options:
+        - Java 17 (Recommended)
+        - Java 21
+        - Java 22+
+        - Other (specify below)
+    validations:
+      required: true
+
+  - type: input
+    id: lavalink-version
+    attributes:
+      label: Lavalink Server Version
+      description: The version of Lavalink server you are running.
+      placeholder: "4.0.8 or 4.2.2"
+    validations:
+      required: true
+
+  - type: input
+    id: livestreamblock-version
+    attributes:
+      label: LiveStreamBlock Version / Commit
+      description: The version or Git commit of LiveStreamBlock plugin you are using.
+      placeholder: "v1.0.0 or commit hash"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: stream-type
+    attributes:
+      label: Stream Category / Provider Involved
+      description: What type of media/stream was being loaded?
+      options:
+        - YouTube Live Stream
+        - Twitch Broadcast
+        - Online Radio (Icecast / Shoutcast / HLS .m3u8 / .pls)
+        - Other Live Video Platform (Kick, TikTok, Vimeo, etc.)
+        - Playlist Sanitization (filtering live tracks from playlist)
+        - Search Query Sanitization (ytsearch: / scsearch:)
+        - Player-level Playback Interception (PATCH /player)
+        - REST API Management (/v4/livestreamblock/...)
+        - Other / Custom Blacklist or Whitelist
+    validations:
+      required: false
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Relevant Configuration (application.yml)
+      description: |
+        Your `plugins.livestreamblock` configuration section from `application.yml`.
+        ⚠️ DO NOT include passwords, auth tokens, or sensitive credentials!
+      render: yaml
+      placeholder: |
+        plugins:
+          livestreamblock:
+            enabled: true
+            block-live-streams: true
+            block-radio: true
+            block-other-streams: true
+            block-playback: true
+            action: "EXCEPTION"
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs & Stack Traces
+      description: Relevant logs or stack traces when the issue occurred.
+      render: shell
+      placeholder: Paste your logs here...
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other context, client library used (discord.js, JDA, lavalink-client, etc.), or screenshots.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: acknowledgements
+    attributes:
+      label: Acknowledgements
+      options:
+        - label: I have searched existing GitHub issues and confirmed this is not a duplicate.
+          required: true
+        - label: I have tested with the latest release of LiveStreamBlock and Lavalink.
+          required: true
+        - label: I have removed all sensitive credentials (passwords, tokens) from config and logs.
+          required: true
