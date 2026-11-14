@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -42,10 +44,6 @@ public class LiveStreamBlockRestHandler {
         this.config = config;
         this.detector = detector;
         this.serverPassword = serverPassword != null ? serverPassword.trim() : "";
-    }
-
-    public LiveStreamBlockRestHandler(LiveStreamBlockPluginConfig config, LiveStreamDetector detector) {
-        this(config, detector, "");
     }
 
     @GetMapping("/config")
@@ -134,13 +132,23 @@ public class LiveStreamBlockRestHandler {
     private boolean isAuthorized(String authHeader, String pluginPassword) {
         String configuredPluginPassword = config.getRestApi().getPassword();
         if (configuredPluginPassword != null && !configuredPluginPassword.isEmpty()) {
-            if (configuredPluginPassword.equals(pluginPassword) || configuredPluginPassword.equals(authHeader)) {
+            byte[] expectedPluginBytes = configuredPluginPassword.getBytes(StandardCharsets.UTF_8);
+            if (pluginPassword != null && MessageDigest.isEqual(expectedPluginBytes, pluginPassword.getBytes(StandardCharsets.UTF_8))) {
+                return true;
+            }
+            if (authHeader != null && MessageDigest.isEqual(expectedPluginBytes, authHeader.getBytes(StandardCharsets.UTF_8))) {
                 return true;
             }
         }
 
         if (serverPassword != null && !serverPassword.isEmpty()) {
-            return serverPassword.equals(authHeader);
+            if (authHeader == null) {
+                return false;
+            }
+            return MessageDigest.isEqual(
+                    serverPassword.getBytes(StandardCharsets.UTF_8),
+                    authHeader.trim().getBytes(StandardCharsets.UTF_8)
+            );
         }
 
         return true;
