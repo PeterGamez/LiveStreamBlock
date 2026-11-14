@@ -6,6 +6,8 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
 import java.net.URI;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -173,20 +175,6 @@ public class LiveStreamDetector {
         return DetectionResult.allowed();
     }
 
-    public boolean isBlocked(AudioTrack track) {
-        return check(track).isBlocked();
-    }
-
-    public boolean isBlocked(String title,
-                             String author,
-                             String uri,
-                             String identifier,
-                             String sourceName,
-                             boolean isStream,
-                             long length) {
-        return check(title, author, uri, identifier, sourceName, isStream, length).isBlocked();
-    }
-
     public static boolean isYouTube(String sourceName, String uri) {
         if ("youtube".equalsIgnoreCase(sourceName)) {
             return true;
@@ -253,14 +241,16 @@ public class LiveStreamDetector {
             }
 
             // 3. Common radio stream port numbers (:8000, :8080, :8002, :8443, :8004, :8006, :8008)
-            try {
-                URI parsed = URI.create(uri);
-                int port = parsed.getPort();
-                if (port == 8000 || port == 8080 || port == 8002 || port == 8004
-                        || port == 8006 || port == 8008 || port == 8443) {
-                    return true;
+            if (lowerUri.contains(":8")) {
+                try {
+                    URI parsed = URI.create(uri);
+                    int port = parsed.getPort();
+                    if (port == 8000 || port == 8080 || port == 8002 || port == 8004
+                            || port == 8006 || port == 8008 || port == 8443) {
+                        return true;
+                    }
+                } catch (Exception ignored) {
                 }
-            } catch (Exception ignored) {
             }
 
             // 4. URL path markers
@@ -301,6 +291,27 @@ public class LiveStreamDetector {
         return "unknown";
     }
 
+    private static final Map<String, Pattern> COMPILED_PATTERN_CACHE = new ConcurrentHashMap<>();
+    private static final Pattern INVALID_PATTERN = Pattern.compile("^\\b$");
+
+    private static Pattern getCompiledPattern(String patternStr) {
+        Pattern cached = COMPILED_PATTERN_CACHE.get(patternStr);
+        if (cached != null) {
+            return cached == INVALID_PATTERN ? null : cached;
+        }
+        try {
+            Pattern compiled = Pattern.compile(patternStr, Pattern.CASE_INSENSITIVE);
+            if (COMPILED_PATTERN_CACHE.size() > 1000) {
+                COMPILED_PATTERN_CACHE.clear();
+            }
+            COMPILED_PATTERN_CACHE.put(patternStr, compiled);
+            return compiled;
+        } catch (PatternSyntaxException e) {
+            COMPILED_PATTERN_CACHE.put(patternStr, INVALID_PATTERN);
+            return null;
+        }
+    }
+
     private static boolean matchesAnyPattern(String text, List<String> patterns) {
         if (text == null || patterns == null || patterns.isEmpty()) {
             return false;
@@ -312,12 +323,10 @@ public class LiveStreamDetector {
             if (text.equalsIgnoreCase(trimmed) || text.contains(trimmed)) {
                 return true;
             }
-            // Check regex
-            try {
-                if (Pattern.compile(trimmed, Pattern.CASE_INSENSITIVE).matcher(text).find()) {
-                    return true;
-                }
-            } catch (PatternSyntaxException ignored) {
+            // Check regex via cached pattern
+            Pattern compiled = getCompiledPattern(trimmed);
+            if (compiled != null && compiled.matcher(text).find()) {
+                return true;
             }
         }
         return false;
